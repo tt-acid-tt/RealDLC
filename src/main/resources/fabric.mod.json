@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "realdlc",
+  "version": "${version}",
+  "name": "RealDLC",
+  "description": "A client-side vector glass interface for Minecraft 1.21.11.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "ru.acid.realdlc.RealDLC"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
