@@ -18,7 +18,7 @@ public final class RealDLC implements ClientModInitializer {
                 return;
             }
 
-            long handle = client.getWindow().getHandle();
+            long handle = client.getWindow().handle();
             boolean down = GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
             if (down && !rightShiftWasDown && client.player != null && client.screen == null) {
                 client.setScreen(new RealDlcScreen());
