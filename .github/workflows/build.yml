@@ -35,18 +35,25 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           jars=(build/libs/RealDLC-*.jar)
-          if [ "${#jars[@]}" -eq 0 ]; then
-            echo "No RealDLC JAR was produced."
-            find build -maxdepth 4 -type f -print || true
+          mod_jars=()
+          for jar in "${jars[@]}"; do
+            [[ "$jar" == *-sources.jar ]] && continue
+            mod_jars+=("$jar")
+          done
+          if [ "${#mod_jars[@]}" -ne 1 ]; then
+            echo "Expected exactly one installable RealDLC JAR, found ${#mod_jars[@]}."
+            find build/libs -maxdepth 1 -type f -print || true
             exit 1
           fi
-          printf 'JAR ready: %s\n' "${jars[@]}"
+          printf 'Installable mod JAR: %s\n' "${mod_jars[0]}"
 
       - name: Upload ready-to-install JAR
         uses: actions/upload-artifact@v4
         with:
           name: RealDLC-ready-JAR
-          path: build/libs/RealDLC-*.jar
+          path: |
+            build/libs/RealDLC-*.jar
+            !build/libs/*-sources.jar
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
