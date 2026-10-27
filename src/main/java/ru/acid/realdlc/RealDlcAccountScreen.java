@@ -16,127 +16,134 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Stores nickname presets locally. Online-mode identity remains bound to the signed-in Microsoft account. */
 public final class RealDlcAccountScreen extends Screen {
     private final List<String> profiles = new ArrayList<>();
     private EditBox nickname;
-    private String selectedProfile = "";
-    private String notice = "";
-    private Path profileFile;
+    private String error = "";
+    private final Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("realdlc-nicknames.txt");
+    private static String activeNickname = "";
 
     public RealDlcAccountScreen() {
-        super(Component.literal("RealDLC Profiles"));
-        profileFile = Minecraft.getInstance().gameDirectory.toPath().resolve("realdlc-profiles.txt");
+        super(Component.literal("RealDLC — профили"));
         loadProfiles();
+    }
+
+    public static String displayName() {
+        String nick = activeNickname;
+        if (nick != null && !nick.isBlank()) return nick;
+        return Minecraft.getInstance().getUser().getName();
     }
 
     private void loadProfiles() {
         try {
-            if (Files.exists(profileFile)) {
-                for (String line : Files.readAllLines(profileFile, StandardCharsets.UTF_8)) {
+            if (Files.exists(file)) {
+                for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
                     String value = line.trim();
-                    if (!value.isEmpty() && value.length() <= 16 && !profiles.contains(value)) profiles.add(value);
+                    if (value.startsWith("*")) {
+                        activeNickname = value.substring(1);
+                        value = activeNickname;
+                    }
+                    if (!value.isBlank() && value.matches("[A-Za-z0-9_]{1,16}") && !profiles.contains(value)) profiles.add(value);
                 }
             }
         } catch (IOException ignored) {
-            notice = "Не удалось прочитать локальные профили";
+            error = "Не удалось прочитать профили";
         }
     }
 
     private void saveProfiles() {
         try {
-            Files.write(profileFile, profiles, StandardCharsets.UTF_8);
+            List<String> lines = new ArrayList<>();
+            for (String profile : profiles) lines.add(profile.equals(activeNickname) ? "*" + profile : profile);
+            Files.write(file, lines, StandardCharsets.UTF_8);
         } catch (IOException ignored) {
-            notice = "Не удалось сохранить профили";
+            error = "Не удалось сохранить профили";
         }
     }
 
     @Override
     protected void init() {
-        int cx = width / 2;
-        nickname = new EditBox(font, cx - 186, height / 2 - 112, 300, 28, Component.literal("Никнейм"));
+        int pw = Math.min(540, width - 30);
+        int x = (width-pw)/2;
+        nickname = new EditBox(font, x+30, height/2 - 112, pw-60, 30, Component.literal("Никнейм"));
         nickname.setMaxLength(16);
-        nickname.setHint(Component.literal("Введите никнейм"));
+        nickname.setHint(Component.literal("Латинские буквы, цифры, _"));
         nickname.setBordered(false);
         nickname.setTextColor(0xFFFFFFFF);
         addRenderableWidget(nickname);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        UiDraw.drawScene(g, width, height, RealDlcHomeScreen.wallpaper);
-        g.fillGradient(0, 0, width, height, 0x24040A12, 0x8C040810);
-        int pw = Math.min(490, width - 32);
-        int ph = Math.min(430, height - 30);
-        pw = Math.max(300, pw);
-        ph = Math.max(300, ph);
-        int x = (width - pw) / 2;
-        int y = (height - ph) / 2;
-        UiDraw.rounded(g, x, y, pw, ph, 28, 0x3BFFFFFF);
-        UiDraw.rounded(g, x + 1, y + 1, pw - 2, ph - 2, 27, 0xB8121C29);
-        g.drawCenteredString(font, "ПРОФИЛИ REALDLC", width / 2, y + 25, 0xFFFFFFFF);
+    public void render(GuiGraphics g, int mx, int my, float partialTick) {
+        UiDraw.drawBackground(g, width, height, System.currentTimeMillis()/45);
+        int pw = Math.min(540, width - 30), ph = Math.min(440, height-24);
+        int x = (width-pw)/2, y = (height-ph)/2;
+        UiDraw.panel(g, x, y, pw, ph, 26, true);
+        g.drawCenteredString(font, "ПРОФИЛЬ И НИКНЕЙМЫ", width/2, y+22, 0xFFFFFFFF);
+        g.drawCenteredString(font, "Аккаунт Minecraft: " + Minecraft.getInstance().getUser().getName(), width/2, y+43, 0xACDDEBFA);
+        UiDraw.rounded(g, x+20, y+68, pw-40, 40, 13, 0x562B4258);
+        g.drawString(font, "ДОБАВИТЬ ЛОКАЛЬНЫЙ ПРОФИЛЬ", x+28, y+57, 0xBBD9E8F5, false);
 
-        UiDraw.rounded(g, width / 2 - 194, height / 2 - 116, 316, 36, 12, 0x40203040);
-        UiDraw.rounded(g, width / 2 + 126, height / 2 - 116, 70, 36, 12, 0x52FFFFFF);
-        g.drawCenteredString(font, "+ ДОБАВИТЬ", width / 2 + 161, height / 2 - 105, 0xFFFFFFFF);
+        int listY = y+124;
+        int rowH = 36;
+        int visible = Math.min(6, Math.max(0, (y+ph-102-listY)/rowH));
+        for (int i = 0; i < visible && i < profiles.size(); i++) {
+            String value = profiles.get(i);
+            int ry = listY + i*rowH;
+            boolean selected = value.equals(activeNickname);
+            UiDraw.rounded(g, x+22, ry, pw-44, 31, 10, selected ? 0x7D4F9AC0 : 0x302D4256);
+            g.drawString(font, value, x+34, ry+11, 0xFFFFFFFF, false);
+            g.drawString(font, selected ? "АКТИВЕН" : "ВЫБРАТЬ", x+pw-112, ry+11, selected ? 0xFF9EDFFF : 0xB9FFFFFF, false);
+        }
+        if (profiles.isEmpty()) g.drawCenteredString(font, "Пока нет сохранённых профилей", width/2, listY+16, 0xBFFFFFFF);
+        g.drawCenteredString(font, "Онлайн-серверы используют ник авторизованного Microsoft-аккаунта.", width/2, y+ph-61, 0xA8FFFFFF);
+        g.drawCenteredString(font, "Смена аккаунта требует отдельного официального входа.", width/2, y+ph-46, 0xA8FFFFFF);
+        drawButton(g, x+pw/2-60, y+ph-34, 120, 26, "ГОТОВО", mx, my, true);
+        if (!error.isBlank()) g.drawCenteredString(font, error, width/2, y+ph-80, 0xFFFFC3A7);
+        super.render(g, mx, my, partialTick);
+    }
 
-        int rowY = height / 2 - 66;
-        int visible = Math.min(6, profiles.size());
-        for (int i = 0; i < visible; i++) {
-            int ry = rowY + i * 35;
-            boolean selected = profiles.get(i).equals(selectedProfile);
-            UiDraw.rounded(g, width / 2 - 194, ry, 390, 30, 10, selected ? 0x5FFFFFFF : 0x24FFFFFF);
-            g.drawString(font, profiles.get(i), width / 2 - 178, ry + 10, 0xFFFFFFFF);
-            UiDraw.rounded(g, width / 2 + 158, ry + 2, 32, 26, 8, 0x30FFFFFF);
-            g.drawCenteredString(font, "×", width / 2 + 174, ry + 8, 0xFFFFFFFF);
+    private void drawButton(GuiGraphics g, int x, int y, int w, int h, String label, int mx, int my, boolean primary) {
+        boolean hover = mx>=x && mx<=x+w && my>=y && my<=y+h;
+        UiDraw.rounded(g, x, y, w, h, 10, hover ? 0x73FFFFFF : (primary ? 0x4DFFFFFF : 0x25FFFFFF));
+        g.drawCenteredString(font, label, x+w/2, y+8, 0xFFFFFFFF);
+    }
+
+    private void addProfile() {
+        String value = nickname.getValue().trim();
+        if (!value.matches("[A-Za-z0-9_]{1,16}")) {
+            error = "Нужно 1–16 латинских букв, цифр или _";
+            return;
         }
-        if (profiles.isEmpty()) {
-            g.drawCenteredString(font, "Добавьте локальный профиль выше", width / 2, rowY + 18, 0xCCFFFFFF);
-        }
-        String liveName = Minecraft.getInstance().getUser().getName();
-        g.drawCenteredString(font, "Аккаунт Minecraft: " + liveName, width / 2, y + ph - 68, 0xD0FFFFFF);
-        g.drawCenteredString(font, "Локальные профили не меняют авторизованный Microsoft-аккаунт.", width / 2, y + ph - 51, 0xA8FFFFFF);
-        if (!notice.isEmpty()) g.drawCenteredString(font, notice, width / 2, y + ph - 32, 0xFFFFC9A6);
-        UiDraw.rounded(g, width / 2 - 58, y + ph - 34, 116, 27, 12, 0x45FFFFFF);
-        g.drawCenteredString(font, "НАЗАД", width / 2, y + ph - 25, 0xFFFFFFFF);
-        super.render(g, mouseX, mouseY, partialTick);
+        if (!profiles.contains(value)) profiles.add(value);
+        activeNickname = value;
+        saveProfiles();
+        nickname.setValue("");
+        error = "Профиль выбран для оформления меню";
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
-        double mx = event.x(), my = event.y();
-        int rowY = height / 2 - 66;
-        if (mx >= width / 2 + 126 && mx <= width / 2 + 196 &&
-                my >= height / 2 - 116 && my <= height / 2 - 80) {
-            String value = nickname.getValue().trim();
-            if (!value.isEmpty() && value.matches("[A-Za-z0-9_]{1,16}")) {
-                if (!profiles.contains(value)) profiles.add(value);
-                selectedProfile = value;
-                saveProfiles();
-                notice = "Профиль сохранён";
-                nickname.setValue("");
-            } else {
-                notice = "Используйте 1–16 латинских букв, цифр или _";
-            }
+        int pw = Math.min(540, width-30), ph = Math.min(440, height-24);
+        int x = (width-pw)/2, y = (height-ph)/2;
+        if (event.x() >= x+20 && event.x() <= x+pw-20 && event.y() >= y+68 && event.y() <= y+108) {
+            addProfile();
             return true;
         }
-        for (int i = 0; i < Math.min(6, profiles.size()); i++) {
-            int ry = rowY + i * 35;
-            if (my >= ry && my <= ry + 31 && mx >= width / 2 - 194 && mx <= width / 2 + 196) {
-                if (mx >= width / 2 + 154) {
-                    String removed = profiles.remove(i);
-                    if (removed.equals(selectedProfile)) selectedProfile = "";
-                    saveProfiles();
-                    notice = "Профиль удалён";
-                } else {
-                    selectedProfile = profiles.get(i);
-                    notice = "Выбран профиль интерфейса: " + selectedProfile;
-                }
+        int listY = y+124, rowH = 36;
+        int visible = Math.min(6, Math.max(0, (y+ph-102-listY)/rowH));
+        for (int i = 0; i < visible && i < profiles.size(); i++) {
+            int ry = listY+i*rowH;
+            if (event.x() >= x+22 && event.x() <= x+pw-22 && event.y() >= ry && event.y() <= ry+31) {
+                activeNickname = profiles.get(i);
+                saveProfiles();
+                error = "Выбран профиль: " + activeNickname;
                 return true;
             }
         }
-        int panelBottom = height / 2 + Math.min(430, height - 30) / 2;
-        if (my >= panelBottom - 40 && mx >= width / 2 - 65 && mx <= width / 2 + 65) {
+        if (event.y() >= y+ph-38 && event.x() >= width/2-65 && event.x() <= width/2+65) {
             minecraft.setScreen(new RealDlcHomeScreen());
             return true;
         }
@@ -149,16 +156,16 @@ public final class RealDlcAccountScreen extends Screen {
             minecraft.setScreen(new RealDlcHomeScreen());
             return true;
         }
+        if (event.key() == GLFW.GLFW_KEY_ENTER) {
+            addProfile();
+            return true;
+        }
         return super.keyPressed(event);
     }
 
     @Override
-    public void onClose() {
-        minecraft.setScreen(new RealDlcHomeScreen());
-    }
+    public boolean shouldCloseOnEsc() { return false; }
 
     @Override
-    public boolean isPauseScreen() {
-        return true;
-    }
+    public boolean isPauseScreen() { return true; }
 }
