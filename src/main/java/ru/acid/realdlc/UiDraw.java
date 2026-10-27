@@ -175,7 +175,7 @@ final class UiDraw {
         }
     }
 
-    static void drawAvatar(GuiGraphics g, int x, int y, int size, ResourceLocation skin) {
+    static void drawAvatar(GuiGraphics g, int x, int y, int size, Identifier skin) {
         rounded(g, x - 3, y - 3, size + 6, size + 6, size / 3, 0x45FFFFFF);
         rounded(g, x - 1, y - 1, size + 2, size + 2, size / 3, 0xFF7FA9C9);
         rounded(g, x, y, size, size, size / 3, 0xFF1D2A39);

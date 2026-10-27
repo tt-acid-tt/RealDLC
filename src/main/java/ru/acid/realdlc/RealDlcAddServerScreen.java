@@ -45,8 +45,7 @@ public final class RealDlcAddServerScreen extends Screen {
     @Override
     public void tick() {
         age++;
-        name.tick();
-        address.tick();
+        super.tick();
     }
 
     @Override
