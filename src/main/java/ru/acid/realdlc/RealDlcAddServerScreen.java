@@ -26,13 +26,13 @@ public final class RealDlcAddServerScreen extends Screen {
     protected void init() {
         int pw = Math.min(520, width - 36);
         int x = (width - pw) / 2;
-        int y = height / 2;
-        name = new EditBox(font, x + 34, y - 52, pw - 68, 30, Component.literal("Название"));
+        int y = (height - 292) / 2;
+        name = new EditBox(font, x + 34, y + 69, pw - 68, 30, Component.literal("Название"));
         name.setMaxLength(64);
         name.setHint(Component.literal("Например, Друзья"));
         name.setBordered(false);
         name.setTextColor(0xFFFFFFFF);
-        address = new EditBox(font, x + 34, y + 12, pw - 68, 30, Component.literal("IP-адрес"));
+        address = new EditBox(font, x + 34, y + 134, pw - 68, 30, Component.literal("IP-адрес"));
         address.setMaxLength(255);
         address.setHint(Component.literal("play.example.net:25565"));
         address.setBordered(false);

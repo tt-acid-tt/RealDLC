@@ -23,6 +23,7 @@ public final class RealDlcAccountScreen extends Screen {
     private String error = "";
     private final Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("realdlc-nicknames.txt");
     private static String activeNickname = "";
+    private static boolean nicknameLoaded = false;
 
     public RealDlcAccountScreen() {
         super(Component.literal("RealDLC — профили"));
@@ -30,12 +31,32 @@ public final class RealDlcAccountScreen extends Screen {
     }
 
     public static String displayName() {
+        if (!nicknameLoaded) {
+            nicknameLoaded = true;
+            Path saved = Minecraft.getInstance().gameDirectory.toPath().resolve("realdlc-nicknames.txt");
+            try {
+                if (Files.exists(saved)) {
+                    for (String line : Files.readAllLines(saved, StandardCharsets.UTF_8)) {
+                        if (line.startsWith("*") && line.length() > 1) {
+                            String nick = line.substring(1).trim();
+                            if (nick.matches("[A-Za-z0-9_]{1,16}")) {
+                                activeNickname = nick;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (IOException ignored) {
+                // Fall back to the signed-in account name if no local selection is available.
+            }
+        }
         String nick = activeNickname;
         if (nick != null && !nick.isBlank()) return nick;
         return Minecraft.getInstance().getUser().getName();
     }
 
     private void loadProfiles() {
+        nicknameLoaded = true;
         try {
             if (Files.exists(file)) {
                 for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
