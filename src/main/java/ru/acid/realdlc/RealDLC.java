@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.DisconnectedScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderPipelines;
 
 /** Client-only launcher integration. */
@@ -27,8 +28,7 @@ public final class RealDLC implements ClientModInitializer {
         // Keep the last frame of the zoom transition over the vanilla connection screen.
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) ->
                 ScreenEvents.afterRender(screen).register((screen1, graphics, mouseX, mouseY, tickDelta) -> {
-                    if (!connectionOverlayActive || screen1 instanceof RealDlcTransitionScreen
-                            || screen1 instanceof DisconnectedScreen || screen1 instanceof TitleScreen) {
+                    if (!connectionOverlayActive || isOverlayExcludedScreen(screen1)) {
                         return;
                     }
                     drawConnectionOverlay(graphics,
@@ -75,7 +75,7 @@ public final class RealDLC implements ClientModInitializer {
         if (!connectionOverlayActive) return;
 
         long now = System.currentTimeMillis();
-        if (client.screen instanceof DisconnectedScreen || client.screen instanceof TitleScreen) {
+        if (isOverlayExcludedScreen(client.screen)) {
             connectionOverlayActive = false;
             worldReadyAt = -1L;
             return;
@@ -92,6 +92,22 @@ public final class RealDLC implements ClientModInitializer {
             connectionOverlayActive = false;
             worldReadyAt = -1L;
         }
+    }
+
+
+    /**
+     * The connection wallpaper belongs only over vanilla connection/loading screens.
+     * Never let it render on top of RealDLC's own menus, even if a connection exits
+     * through an unusual callback path.
+     */
+    private static boolean isOverlayExcludedScreen(Screen screen) {
+        return screen instanceof RealDlcTransitionScreen
+                || screen instanceof DisconnectedScreen
+                || screen instanceof TitleScreen
+                || screen instanceof RealDlcHomeScreen
+                || screen instanceof RealDlcWelcomeScreen
+                || screen instanceof RealDlcAccountScreen
+                || screen instanceof RealDlcAddServerScreen;
     }
 
     private static void drawConnectionOverlay(GuiGraphics graphics, int width, int height) {
