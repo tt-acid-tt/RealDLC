@@ -3,6 +3,7 @@ package ru.acid.realdlc;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Style;
 
@@ -19,7 +20,7 @@ final class UiDraw {
     private UiDraw() {}
 
     static Component text(String value) {
-        return Component.literal(value == null ? "" : value).withStyle(Style.EMPTY.withFont(UI_FONT));
+        return Component.literal(value == null ? "" : value).withStyle(Style.EMPTY.withFont(new FontDescription.Resource(UI_FONT)));
     }
 
     static void text(GuiGraphics g, Font font, String value, int x, int y, int color) {
