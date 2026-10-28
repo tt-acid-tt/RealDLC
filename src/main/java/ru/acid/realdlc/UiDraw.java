@@ -32,7 +32,7 @@ final class UiDraw {
     }
 
     static void background(GuiGraphics g, int w, int h, long time) {
-        g.blit(WALLPAPER, 0, 0, w, h, 0.0F, 0.0F, 1.0F, 1.0F);
+        g.blit(WALLPAPER, 0, 0, w, h, 0.0F, 1.0F, 0.0F, 1.0F);
         g.fillGradient(0, 0, w, Math.max(1, h / 5), 0x71071322, 0x00071322);
         g.fillGradient(0, h - Math.max(1, h / 3), w, h, 0x00050B14, 0x8F050B14);
         // Low-cost drifting particles: a few individual pixels, not expensive per-frame circles.
@@ -59,29 +59,33 @@ final class UiDraw {
         int midW = Math.max(0, w - cap * 2);
         int midH = Math.max(0, h - cap * 2);
         float q = 0.25F, mid = 0.5F, far = 0.75F;
+        // GuiGraphics.blit uses absolute destination bounds and UV endpoints.
+        // Keeping the source corners fixed preserves smooth rounded edges when panels resize.
         // Four corners.
-        g.blit(texture, x, y, cap, cap, 0F, 0F, q, q);
-        g.blit(texture, x + w - cap, y, cap, cap, far, 0F, q, q);
-        g.blit(texture, x, y + h - cap, cap, cap, 0F, far, q, q);
-        g.blit(texture, x + w - cap, y + h - cap, cap, cap, far, far, q, q);
+        g.blit(texture, x, y, x + cap, y + cap, 0F, q, 0F, q);
+        g.blit(texture, x + w - cap, y, x + w, y + cap, far, 1F, 0F, q);
+        g.blit(texture, x, y + h - cap, x + cap, y + h, 0F, q, far, 1F);
+        g.blit(texture, x + w - cap, y + h - cap, x + w, y + h, far, 1F, far, 1F);
         // Four edges.
         if (midW > 0) {
-            g.blit(texture, x + cap, y, midW, cap, q, 0F, mid, q);
-            g.blit(texture, x + cap, y + h - cap, midW, cap, q, far, mid, q);
+            g.blit(texture, x + cap, y, x + cap + midW, y + cap, q, far, 0F, q);
+            g.blit(texture, x + cap, y + h - cap, x + cap + midW, y + h, q, far, far, 1F);
         }
         if (midH > 0) {
-            g.blit(texture, x, y + cap, cap, midH, 0F, q, q, mid);
-            g.blit(texture, x + w - cap, y + cap, cap, midH, far, q, q, mid);
+            g.blit(texture, x, y + cap, x + cap, y + cap + midH, 0F, q, q, far);
+            g.blit(texture, x + w - cap, y + cap, x + w, y + cap + midH, far, 1F, q, far);
         }
         if (midW > 0 && midH > 0) {
-            g.blit(texture, x + cap, y + cap, midW, midH, q, q, mid, mid);
+            g.blit(texture, x + cap, y + cap, x + cap + midW, y + cap + midH, q, far, q, far);
         }
     }
 
     static void icon(GuiGraphics g, int icon, int x, int y, int size) {
         int index = Math.floorMod(icon, 4);
         // Each SVG icon occupies one quarter of the bundled, 4x-rendered atlas.
-        g.blit(ICONS, x, y, size, size, index * 0.25F, 0F, 0.25F, 1F);
+        float u0 = index * 0.25F;
+        float u1 = (index + 1) * 0.25F;
+        g.blit(ICONS, x, y, x + size, y + size, u0, u1, 0F, 1F);
     }
 
     static void avatar(GuiGraphics g, int x, int y, int size, Identifier skin) {
@@ -90,22 +94,27 @@ final class UiDraw {
             icon(g, 3, x, y, size);
             return;
         }
-        // Front of the player's skin head and its outer hat layer (64x64 skin layout).
-        g.blit(skin, x, y, size, size, 0.125F, 0.125F, 0.125F, 0.125F);
-        g.blit(skin, x, y, size, size, 0.625F, 0.125F, 0.125F, 0.125F);
+        // GuiGraphics.blit uses x0/y0/x1/y1 bounds, not x/y/width/height.
+        // The front face UVs are (8..16, 8..16), and the outer hat UVs are (40..48, 8..16).
+        // Passing 'size' as x1/y1 used to create a giant inverted texture area.
+        float v0 = 8.0F / 64.0F;
+        float v1 = 16.0F / 64.0F;
+        g.blit(skin, x, y, x + size, y + size, 8.0F / 64.0F, 16.0F / 64.0F, v0, v1);
+        g.blit(skin, x, y, x + size, y + size, 40.0F / 64.0F, 48.0F / 64.0F, v0, v1);
     }
 
     static void card(GuiGraphics g, Font font, int x, int y, int w, int h, int index, boolean world, boolean add, boolean active, int mouseX, int mouseY) {
         boolean hover = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
         // Crop different portions of the bundled landscape for individual card artwork.
-        float u = (index % 4) * 0.13F;
-        float v = (index % 2) * 0.20F;
-        float du = 1.0F - u, dv = 1.0F - v;
+        float u0 = (index % 4) * 0.20F;
+        float v0 = (index % 2) * 0.16F;
+        float u1 = Math.min(1.0F, u0 + 0.52F);
+        float v1 = Math.min(1.0F, v0 + 0.46F);
         int ix = x + 4, iy = y + 4, iw = w - 8, imageH = h - 46;
         if (add) {
             g.fillGradient(ix, iy, ix + iw, iy + imageH, 0xFF5B6878, 0xFF2B3544);
         } else {
-            g.blit(WALLPAPER, ix, iy, iw, imageH, u, v, du, dv);
+            g.blit(WALLPAPER, ix, iy, ix + iw, iy + imageH, u0, u1, v0, v1);
             g.fillGradient(ix, iy, ix + iw, iy + imageH, 0x07050B14, 0xA8050B14);
         }
         panel(g, x, y, w, h, 18, active || hover);

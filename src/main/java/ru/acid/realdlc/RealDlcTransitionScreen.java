@@ -9,6 +9,7 @@ public final class RealDlcTransitionScreen extends Screen {
     private final boolean returning;
     private final Runnable action;
     private int age;
+    private boolean actionStarted;
 
     public RealDlcTransitionScreen(boolean returning, Runnable action) {
         super(Component.literal("RealDLC Transition"));
@@ -19,10 +20,17 @@ public final class RealDlcTransitionScreen extends Screen {
     @Override
     public void tick() {
         age++;
-        if (age >= 32) {
-            if (returning) minecraft.setScreen(new RealDlcHomeScreen(RealDlcHomeScreen.lastMultiplayer()));
-            else if (action != null) action.run();
-            else minecraft.setScreen(new RealDlcHomeScreen());
+        if (age >= 33 && !actionStarted) {
+            actionStarted = true;
+            if (returning) {
+                minecraft.setScreen(new RealDlcHomeScreen(RealDlcHomeScreen.lastMultiplayer()));
+            } else if (action != null) {
+                // Continue the exact final frame over the connection and world-loading screens.
+                RealDLC.beginConnectionOverlay();
+                action.run();
+            } else {
+                minecraft.setScreen(new RealDlcHomeScreen());
+            }
         }
     }
 
@@ -34,14 +42,14 @@ public final class RealDlcTransitionScreen extends Screen {
         g.fillGradient(0, 0, width, height, 0x9908111C, 0x74030A12);
         float startW = Math.min(168F, width * 0.22F);
         float startH = Math.min(210F, height * 0.42F);
-        float endW = width * 1.24F;
-        float endH = height * 1.24F;
+        float endW = width;
+        float endH = height;
         float f = returning ? (1F - eased) : eased;
         float cardW = startW + (endW - startW) * f;
         float cardH = startH + (endH - startH) * f;
         int cw = Math.max(1, (int)cardW), ch = Math.max(1, (int)cardH);
         int x = (width - cw) / 2, y = (height - ch) / 2;
-        g.blit(UiDraw.WALLPAPER, x, y, cw, ch, 0F, 0F, 1F, 1F);
+        g.blit(UiDraw.WALLPAPER, x, y, x + cw, y + ch, 0F, 1F, 0F, 1F);
         if (linear < 0.78F) {
             String message = returning ? "ВОЗВРАЩАЕМСЯ" : "ЗАПУСКАЕМ";
             UiDraw.centered(g, font, message, width / 2, height - 54, 0xEFFFFFFF);
