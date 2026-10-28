@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.multiplayer.ServerAddress;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.ServerList;
 import net.minecraft.network.chat.Component;
@@ -212,7 +212,7 @@ public final class RealDlcHomeScreen extends Screen {
         Card card = items.get(selectedIndex);
         if (card.add) {
             if (multiplayer) minecraft.setScreen(new RealDlcAddServerScreen());
-            else CreateWorldScreen.openFresh(minecraft, this);
+            else CreateWorldScreen.openFresh(minecraft, () -> minecraft.setScreen(this));
             return;
         }
         if (multiplayer) {
@@ -221,11 +221,11 @@ public final class RealDlcHomeScreen extends Screen {
             int idx = card.sourceIndex;
             if (idx >= 0 && idx < list.size()) {
                 ServerData server = list.get(idx);
-                setScreen(new RealDlcTransitionScreen(false, () ->
+                minecraft.setScreen(new RealDlcTransitionScreen(false, () ->
                     ConnectScreen.startConnecting(this, minecraft, ServerAddress.parseString(server.ip), server, false, null)));
             }
         } else {
-            setScreen(new RealDlcTransitionScreen(false, () ->
+            minecraft.setScreen(new RealDlcTransitionScreen(false, () ->
                     minecraft.createWorldOpenFlows().openWorld(card.target, () -> minecraft.setScreen(this))));
         }
     }

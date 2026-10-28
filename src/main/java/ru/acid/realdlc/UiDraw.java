@@ -14,6 +14,7 @@ final class UiDraw {
     static final Identifier WALLPAPER = Identifier.fromNamespaceAndPath("realdlc", "textures/gui/wallpaper.jpg");
     private static final Identifier GLASS = Identifier.fromNamespaceAndPath("realdlc", "textures/gui/glass_panel.png");
     private static final Identifier ICONS = Identifier.fromNamespaceAndPath("realdlc", "textures/gui/icons.png");
+    private static final Identifier UI_FONT = Identifier.fromNamespaceAndPath("realdlc", "ui");
 
     private UiDraw() {}
 
