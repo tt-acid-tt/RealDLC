@@ -265,6 +265,10 @@ tasks.named("processResources").configure {
     dependsOn(tasks.named("generateRealdlcUiAssets"))
 }
 
+tasks.named("sourcesJar").configure {
+    dependsOn(tasks.named("generateRealdlcUiAssets"))
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.release = 21
