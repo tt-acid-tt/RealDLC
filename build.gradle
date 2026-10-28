@@ -71,7 +71,7 @@ tasks.register("generateRealdlcUiAssets") {
                     new java.awt.Color(255, 194, 178, 27)))
             g.fillRoundRect(x, y, ww, hh, hh, hh)
             g.setColor(new java.awt.Color(255, 211, 194, 16))
-            g.fillRoundRect(x+40, y+8, ww/2, hh/2+7, 30, 30)
+            g.fillRoundRect(x+40, y+8, (int)Math.floor(ww/2.0), (int)Math.floor(hh/2.0)+7, 30, 30)
         }
 
         def ridge = { int[] xs, int[] ys, java.awt.Color top, java.awt.Color bottom ->
@@ -156,7 +156,7 @@ tasks.register("generateRealdlcUiAssets") {
             if (nx*nx+ny*ny<1.18 || i%11==0) {
                 int r=8+(i%18)
                 blossom(x,y,r,new java.awt.Color(226, 95+(i%4)*12, 143+(i%3)*18, 35+(i%4)*13))
-                blossom(x-5,y-4,Math.max(3,r/2),new java.awt.Color(255,190,205,55))
+                blossom(x-5,y-4,Math.max(3,(int)Math.floor(r/2.0)),new java.awt.Color(255,190,205,55))
             }
         }
         for (int i=0; i<12; i++) {
@@ -208,11 +208,11 @@ tasks.register("generateRealdlcUiAssets") {
         ig.setStroke(new java.awt.BasicStroke(5.0f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
         ig.drawLine(32, 13, 32, 51); ig.drawLine(13, 32, 51, 32)
         ig.setStroke(new java.awt.BasicStroke(3.4f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
-        ig.drawRoundRect(64+8, 64/2-15, 48, 31, 10, 10)
+        ig.drawRoundRect(72, 17, 48, 31, 10, 10)
         ig.setColor(new java.awt.Color(132, 222, 220, 245))
-        ig.drawLine(64+12, 64/2+11, 64+24, 64/2-5)
-        ig.drawLine(64+24, 64/2-5, 64+35, 64/2+5)
-        ig.drawLine(64+35, 64/2+5, 64+49, 64/2-10)
+        ig.drawLine(76, 43, 88, 27)
+        ig.drawLine(88, 27, 99, 37)
+        ig.drawLine(99, 37, 113, 22)
         ig.setColor(new java.awt.Color(238, 249, 255, 245))
         for (int row=0; row<3; row++) {
             int y=9+row*19
