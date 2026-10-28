@@ -265,8 +265,10 @@ tasks.named("processResources").configure {
     dependsOn(tasks.named("generateRealdlcUiAssets"))
 }
 
-tasks.named("sourcesJar").configure {
-    dependsOn(tasks.named("generateRealdlcUiAssets"))
+tasks.configureEach {
+    if (name == "sourcesJar") {
+        dependsOn(tasks.named("generateRealdlcUiAssets"))
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
