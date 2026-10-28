@@ -109,7 +109,7 @@ tasks.register("generateRealdlcUiAssets") {
             int y = 676 + i*5
             int span = Math.max(12, (int)(240*Math.exp(-i/29.0)))
             int x = 1425 - span/2 + (int)(Math.sin(i*1.73)*105)
-            int alpha = Math.max(5, 45-i/2)
+            int alpha = Math.max(5, 45-i.intdiv(2))
             g.setColor(new java.awt.Color(255, 203, 170, Math.min(75, alpha)))
             g.setStroke(new java.awt.BasicStroke((i%5==0)?2.2f:1.0f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
             g.drawLine(x, y, x+span, y)
