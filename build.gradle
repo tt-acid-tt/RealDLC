@@ -28,6 +28,243 @@ processResources {
     }
 }
 
+def generatedUiResources = layout.buildDirectory.dir("generated/realdlc-ui-resources")
+sourceSets.main.resources.srcDir(generatedUiResources)
+
+tasks.register("generateRealdlcUiAssets") {
+    outputs.dir(generatedUiResources)
+    doLast {
+        File outRoot = generatedUiResources.get().asFile
+        File guiDir = new File(outRoot, "assets/realdlc/textures/gui")
+        File fontDir = new File(outRoot, "assets/realdlc/font")
+        guiDir.mkdirs()
+        fontDir.mkdirs()
+
+        // 1920x1080 antialiased scenic background, generated once at build time.
+        int W = 1920, H = 1080
+        def bg = new java.awt.image.BufferedImage(W, H, java.awt.image.BufferedImage.TYPE_INT_RGB)
+        def g = bg.createGraphics()
+        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
+        g.setRenderingHint(java.awt.RenderingHints.KEY_ALPHA_INTERPOLATION, java.awt.RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+        g.setPaint(new java.awt.GradientPaint(0, 0, new java.awt.Color(15, 28, 52), 0, 690, new java.awt.Color(244, 150, 126)))
+        g.fillRect(0, 0, W, H)
+
+        def glow = { int cx, int cy, int radius, java.awt.Color center, java.awt.Color edge ->
+            def paint = new java.awt.RadialGradientPaint(
+                new java.awt.geom.Point2D.Float(cx, cy), (float)radius,
+                [0.0f, 0.45f, 1.0f] as float[],
+                [center, new java.awt.Color(center.getRed(), center.getGreen(), center.getBlue(), 65), edge] as java.awt.Color[]
+            )
+            g.setPaint(paint)
+            g.fillOval(cx-radius, cy-radius, radius*2, radius*2)
+        }
+        glow(1450, 420, 560, new java.awt.Color(255, 198, 147, 205), new java.awt.Color(244, 154, 135, 0))
+
+        // Soft atmospheric cloud bands.
+        for (int i = 0; i < 19; i++) {
+            int x = -130 + i * 125
+            int y = 95 + (i % 5) * 52
+            int ww = 250 + (i % 4) * 90
+            int hh = 17 + (i % 3) * 15
+            g.setPaint(new java.awt.GradientPaint(x, y, new java.awt.Color(251, 194, 169, 0), x, y+hh,
+                    new java.awt.Color(255, 194, 178, 27)))
+            g.fillRoundRect(x, y, ww, hh, hh, hh)
+            g.setColor(new java.awt.Color(255, 211, 194, 16))
+            g.fillRoundRect(x+40, y+8, ww/2, hh/2+7, 30, 30)
+        }
+
+        def ridge = { int[] xs, int[] ys, java.awt.Color top, java.awt.Color bottom ->
+            def p = new java.awt.geom.Path2D.Float()
+            p.moveTo(xs[0], ys[0])
+            for (int i=1; i<xs.length; i++) {
+                float midX = (xs[i-1] + xs[i]) / 2.0f
+                float midY = (ys[i-1] + ys[i]) / 2.0f
+                p.quadTo(xs[i-1], ys[i-1], midX, midY)
+            }
+            p.lineTo(xs[xs.length-1], ys[ys.length-1])
+            p.lineTo(W, H)
+            p.lineTo(0, H)
+            p.closePath()
+            g.setPaint(new java.awt.GradientPaint(0, 420, top, 0, 950, bottom))
+            g.fill(p)
+        }
+        ridge([0,110,220,355,500,655,810,970,1120,1285,1440,1600,1760,1920] as int[],
+              [620,500,545,415,505,355,510,445,565,420,515,375,505,445] as int[],
+              new java.awt.Color(68, 76, 112), new java.awt.Color(28, 38, 65))
+        ridge([0,130,270,400,555,700,840,990,1140,1300,1460,1630,1775,1920] as int[],
+              [710,655,600,680,575,665,560,650,575,682,590,666,580,650] as int[],
+              new java.awt.Color(42, 68, 83), new java.awt.Color(14, 32, 43))
+
+        // Distant haze around the sunset and valley.
+        g.setPaint(new java.awt.GradientPaint(0, 500, new java.awt.Color(255, 200, 163, 0), 0, 800, new java.awt.Color(255, 195, 164, 85)))
+        g.fillRect(0, 500, W, 310)
+
+        // Lake at the foot of the valley.
+        g.setPaint(new java.awt.GradientPaint(0, 660, new java.awt.Color(55, 68, 91), 0, H, new java.awt.Color(5, 21, 37)))
+        g.fillRect(0, 660, W, H-660)
+        g.setPaint(new java.awt.GradientPaint(0, 690, new java.awt.Color(255, 189, 143, 95), 0, 975, new java.awt.Color(255, 180, 135, 0)))
+        g.fillOval(1180, 662, 430, 330)
+        for (int i=0; i<80; i++) {
+            int y = 676 + i*5
+            int span = Math.max(12, (int)(240*Math.exp(-i/29.0)))
+            int x = 1425 - span/2 + (int)(Math.sin(i*1.73)*105)
+            int alpha = Math.max(5, 45-i/2)
+            g.setColor(new java.awt.Color(255, 203, 170, Math.min(75, alpha)))
+            g.setStroke(new java.awt.BasicStroke((i%5==0)?2.2f:1.0f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+            g.drawLine(x, y, x+span, y)
+        }
+        for (int i=0; i<34; i++) {
+            int x = (i*137+33)%W
+            int y = 704+(i%11)*27
+            int span = 15+(i%7)*13
+            g.setColor(new java.awt.Color(159, 212, 222, 25+(i%4)*6))
+            g.setStroke(new java.awt.BasicStroke(1.0f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+            g.drawLine(x, y, Math.min(W, x+span), y)
+        }
+
+        // Dark foreground banks provide cinematic framing.
+        def bank = new java.awt.geom.Path2D.Float()
+        bank.moveTo(0, 730); bank.curveTo(180, 650, 290, 740, 435, 775)
+        bank.curveTo(545, 810, 570, 870, 710, 1080); bank.lineTo(0,1080); bank.closePath()
+        g.setPaint(new java.awt.GradientPaint(0, 690, new java.awt.Color(17, 43, 39), 0, 1080, new java.awt.Color(4, 15, 22)))
+        g.fill(bank)
+        def rightBank = new java.awt.geom.Path2D.Float()
+        rightBank.moveTo(1920, 620); rightBank.curveTo(1750, 680, 1760, 760, 1650, 790)
+        rightBank.curveTo(1570, 820, 1620, 930, 1480, 1080); rightBank.lineTo(1920,1080); rightBank.closePath()
+        g.setPaint(new java.awt.GradientPaint(0, 650, new java.awt.Color(24, 38, 39), 0, 1080, new java.awt.Color(5, 15, 21)))
+        g.fill(rightBank)
+
+        // A stylized cherry tree and pines; drawn with smooth paths and soft foliage.
+        g.setStroke(new java.awt.BasicStroke(22f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+        g.setColor(new java.awt.Color(28, 22, 30, 235))
+        def trunk = new java.awt.geom.Path2D.Float()
+        trunk.moveTo(1780,760); trunk.curveTo(1740,565,1800,420,1705,245)
+        trunk.curveTo(1665,175,1635,115,1590,80)
+        g.draw(trunk)
+        g.setStroke(new java.awt.BasicStroke(12f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+        g.draw(new java.awt.geom.Line2D.Float(1720,520,1585,375))
+        g.draw(new java.awt.geom.Line2D.Float(1745,455,1875,300))
+        g.draw(new java.awt.geom.Line2D.Float(1683,350,1780,180))
+        def blossom = { int cx, int cy, int radius, java.awt.Color color ->
+            g.setColor(color); g.fillOval(cx-radius,cy-radius,radius*2,radius*2)
+        }
+        for (int i=0; i<175; i++) {
+            int x = 1450 + (i*71)%470
+            int y = 45 + (i*43)%370
+            double nx=(x-1685)/255.0, ny=(y-255)/245.0
+            if (nx*nx+ny*ny<1.18 || i%11==0) {
+                int r=8+(i%18)
+                blossom(x,y,r,new java.awt.Color(226, 95+(i%4)*12, 143+(i%3)*18, 35+(i%4)*13))
+                blossom(x-5,y-4,Math.max(3,r/2),new java.awt.Color(255,190,205,55))
+            }
+        }
+        for (int i=0; i<12; i++) {
+            int x = i*49-30
+            int base = 760+(i%4)*42
+            int top = 430+(i%5)*24
+            g.setColor(new java.awt.Color(9, 24, 31, 210))
+            def pine = new java.awt.geom.Path2D.Float()
+            pine.moveTo(x-55,base); pine.lineTo(x,top); pine.lineTo(x+62,base); pine.closePath(); g.fill(pine)
+            g.setColor(new java.awt.Color(24, 56, 52, 125))
+            def pine2 = new java.awt.geom.Path2D.Float()
+            pine2.moveTo(x-37,base-75); pine2.lineTo(x,top+55); pine2.lineTo(x+40,base-75); pine2.closePath(); g.fill(pine2)
+        }
+
+        // Tiny warm highlights reflected from the valley.
+        for (int i=0; i<75; i++) {
+            int x = (i*97+210)%W
+            int y = 600+(i%15)*29
+            g.setColor(new java.awt.Color(255, 200, 150, 22+(i%5)*6))
+            g.fillOval(x,y,2+(i%3),2+(i%3))
+        }
+        g.dispose()
+        javax.imageio.ImageIO.write(bg, "jpg", new File(guiDir, "wallpaper.jpg"))
+
+        // 256x256 nine-slice glass panel: antialiased corner radius, inner bevel and cool reflection.
+        def glass = new java.awt.image.BufferedImage(256, 256, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        def pg = glass.createGraphics()
+        pg.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+        pg.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
+        pg.setPaint(new java.awt.GradientPaint(0, 0, new java.awt.Color(21, 35, 51, 138), 0, 256, new java.awt.Color(5, 13, 25, 162)))
+        pg.fillRoundRect(1, 1, 254, 254, 68, 68)
+        pg.setStroke(new java.awt.BasicStroke(2.0f))
+        pg.setColor(new java.awt.Color(218, 241, 255, 108))
+        pg.drawRoundRect(2, 2, 251, 251, 66, 66)
+        pg.setPaint(new java.awt.GradientPaint(0, 3, new java.awt.Color(255,255,255,46), 0, 48, new java.awt.Color(255,255,255,0)))
+        pg.fillRoundRect(7, 4, 242, 50, 54, 54)
+        pg.setColor(new java.awt.Color(109, 190, 226, 35))
+        pg.setStroke(new java.awt.BasicStroke(1.1f))
+        pg.drawRoundRect(6, 6, 243, 243, 60, 60)
+        pg.dispose()
+        javax.imageio.ImageIO.write(glass, "png", new File(guiDir, "glass_panel.png"))
+
+        // Four separate antialiased icons in a 256x64 atlas: plus, world, server, avatar.
+        def icons = new java.awt.image.BufferedImage(256, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        def ig = icons.createGraphics()
+        ig.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+        ig.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE)
+        ig.setColor(new java.awt.Color(238, 249, 255, 245))
+        ig.setStroke(new java.awt.BasicStroke(5.0f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+        ig.drawLine(32, 13, 32, 51); ig.drawLine(13, 32, 51, 32)
+        ig.setStroke(new java.awt.BasicStroke(3.4f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND))
+        ig.drawRoundRect(64+8, 64/2-15, 48, 31, 10, 10)
+        ig.setColor(new java.awt.Color(132, 222, 220, 245))
+        ig.drawLine(64+12, 64/2+11, 64+24, 64/2-5)
+        ig.drawLine(64+24, 64/2-5, 64+35, 64/2+5)
+        ig.drawLine(64+35, 64/2+5, 64+49, 64/2-10)
+        ig.setColor(new java.awt.Color(238, 249, 255, 245))
+        for (int row=0; row<3; row++) {
+            int y=9+row*19
+            ig.drawRoundRect(128+12,y,40,14,5,5)
+            ig.fillOval(128+17,y+5,4,4)
+            ig.drawLine(128+29,y+7,128+44,y+7)
+        }
+        ig.fillOval(192+21, 8, 22, 22)
+        ig.fillRoundRect(192+13, 31, 38, 23, 13, 13)
+        ig.setColor(new java.awt.Color(255,255,255,72))
+        ig.setStroke(new java.awt.BasicStroke(1.2f))
+        for (int i=0;i<4;i++) ig.drawRoundRect(i*64+1,1,62,62,13,13)
+        ig.dispose()
+        javax.imageio.ImageIO.write(icons, "png", new File(guiDir, "icons.png"))
+
+        // Use linear sampling for all bundled artwork.
+        String filtering = '{"texture":{"blur":true,"clamp":true}}'
+        new File(guiDir, "wallpaper.jpg.mcmeta").setText(filtering, "UTF-8")
+        new File(guiDir, "glass_panel.png.mcmeta").setText(filtering, "UTF-8")
+        new File(guiDir, "icons.png.mcmeta").setText(filtering, "UTF-8")
+
+        // Noto Sans variable font has Latin and Cyrillic glyphs; its OFL license is stored in the JAR.
+        File fontFile = new File(fontDir, "ui.ttf")
+        if (!fontFile.isFile() || fontFile.length() < 10000) {
+            def fontUrl = new URL("https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans%5Bwdth%2Cwght%5D.ttf")
+            def connection = fontUrl.openConnection()
+            connection.setConnectTimeout(20000)
+            connection.setReadTimeout(30000)
+            connection.setRequestProperty("User-Agent", "RealDLC-build/1.0")
+            connection.getInputStream().withCloseable { stream ->
+                java.nio.file.Files.copy(stream, fontFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+        File licenseFile = new File(fontDir, "OFL.txt")
+        if (!licenseFile.isFile()) {
+            def licenseUrl = new URL("https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/OFL.txt")
+            def connection = licenseUrl.openConnection()
+            connection.setConnectTimeout(20000)
+            connection.setReadTimeout(30000)
+            connection.setRequestProperty("User-Agent", "RealDLC-build/1.0")
+            connection.getInputStream().withCloseable { stream ->
+                java.nio.file.Files.copy(stream, licenseFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+        logger.lifecycle("Generated RealDLC 1920x1080 wallpaper, antialiased glass and icon atlas; bundled Noto Sans TTF.")
+    }
+}
+
+tasks.named("processResources").configure {
+    dependsOn(tasks.named("generateRealdlcUiAssets"))
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.release = 21
